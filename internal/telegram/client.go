@@ -1,6 +1,7 @@
 package telegram
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 	"sync"
@@ -10,6 +11,7 @@ import (
 )
 
 type MessagePost struct {
+	ChannelName  string
 	Text         string
 	FileURL      string
 	FileName     string
@@ -59,7 +61,10 @@ func StartListening(bot *tgbotapi.BotAPI, targetChannelID string) <-chan Message
 
 			if update.ChannelPost != nil {
 
-				post := MessagePost{MediaGroupID: update.ChannelPost.MediaGroupID}
+				post := MessagePost{
+					MediaGroupID: update.ChannelPost.MediaGroupID,
+					ChannelName:  update.ChannelPost.Chat.Title,
+				}
 
 				//text post
 				if update.ChannelPost.Text != "" {
@@ -144,7 +149,7 @@ func StartAlbumCollection(inputChan <-chan MessagePost, outputChan chan<- AlbumP
 	for post := range inputChan {
 		if post.MediaGroupID == "" {
 			outputChan <- AlbumPost{
-				Text: post.Text,
+				Text: fmt.Sprintf("📢 **%s:**\n%s", post.ChannelName, post.Text),
 				Files: []MediaFile{
 					{URL: post.FileURL, FileName: post.FileName},
 				},
