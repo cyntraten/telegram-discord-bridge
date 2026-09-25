@@ -37,8 +37,7 @@ func main() {
 
 	// send posts from tg in discord
 	for text := range postsChan {
-		idChannel := "1553039751265910854"
-		discord.SendMessage(dsbot, idChannel, text)
+		discord.SendMessage(dsbot, config.DiscordChannelId, text)
 	}
 
 }
