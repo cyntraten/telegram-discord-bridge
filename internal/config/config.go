@@ -8,9 +8,10 @@ import (
 )
 
 type Config struct {
-	TelegramToken    string
-	DiscordToken     string
-	DiscordChannelId string
+	TelegramToken           string
+	DiscordToken            string
+	DiscordChannelId        string
+	TargetTelegramChannelId string
 }
 
 func Load() (*Config, error) {
@@ -32,10 +33,16 @@ func Load() (*Config, error) {
 		log.Fatal("DiscordChannelId is required, but it is empty")
 	}
 
+	telegramChannelId := os.Getenv("TargetTelegramChannelId")
+	if telegramChannelId == "" {
+		log.Fatal("TargetTelegramChannelId is required, but it is empty")
+	}
+
 	return &Config{
-		TelegramToken:    telegramToken,
-		DiscordToken:     discordToken,
-		DiscordChannelId: discordChannelId,
+		TelegramToken:           telegramToken,
+		DiscordToken:            discordToken,
+		DiscordChannelId:        discordChannelId,
+		TargetTelegramChannelId: telegramChannelId,
 	}, nil
 
 }
