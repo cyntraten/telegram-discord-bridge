@@ -7,6 +7,11 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+type MediaFileToSend struct {
+	Reader   io.Reader
+	FileName string
+}
+
 func StartBot(token string) (*discordgo.Session, error) {
 	session, err := discordgo.New("Bot " + token)
 
@@ -42,4 +47,28 @@ func SendMessage(session *discordgo.Session, channelId string, textMessage strin
 
 	return nil
 
+}
+
+func SendAlbum(session *discordgo.Session, channelId string, textMessage string, files []MediaFileToSend) error {
+	var discordFiles []*discordgo.File
+
+	for _, f := range files {
+		discordFiles = append(discordFiles, &discordgo.File{
+			Name:   f.FileName,
+			Reader: f.Reader,
+		})
+	}
+
+	msgSend := &discordgo.MessageSend{
+		Content: textMessage,
+		Files:   discordFiles,
+	}
+
+	_, err := session.ChannelMessageSendComplex(channelId, msgSend)
+	if err != nil {
+		fmt.Printf("Failed to send album in channel %v, error: %v\n", channelId, err)
+		return err
+	}
+
+	return nil
 }

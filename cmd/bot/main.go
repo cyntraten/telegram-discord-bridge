@@ -34,33 +34,39 @@ func main() {
 	}
 	defer dsbot.Close()
 
-	// channel with posts from tg
-	postsChan := telegram.StartListening(tgbot)
+	rawsPostsChan := telegram.StartListening(tgbot, config.TargetTelegramChannelId)
 
-	// send posts from tg in discord
-	for post := range postsChan {
+	albumsChan := make(chan telegram.AlbumPost)
+	go telegram.StartAlbumCollection(rawsPostsChan, albumsChan)
 
-		var fileReader io.Reader = nil
-		var resp *http.Response
-		var err error
+	for album := range albumsChan {
+		var discordFiles []discord.MediaFileToSend
 
-		if post.FileURL != "" && post.HasFile != false {
-			resp, err = http.Get(post.FileURL)
-			if err == nil {
-				fileReader = resp.Body
-			} else {
-				log.Printf("Failed to download image from Telegram post: %v\n", err)
+		for _, file := range album.Files {
+			if file.URL == "" {
+				continue
+			}
+
+			resp, err := http.Get(file.URL)
+			if err != nil {
+				log.Printf("Failed to download file from Telegram: %v", err)
+				continue
+			}
+
+			discordFiles = append(discordFiles, discord.MediaFileToSend{Reader: resp.Body, FileName: file.FileName})
+		}
+
+		err = discord.SendAlbum(dsbot, config.DiscordChannelId, album.Text, discordFiles)
+		if err != nil {
+			log.Printf("Failed to send album in discord: %v", err)
+		}
+
+		for _, df := range discordFiles {
+			if closer, ok := df.Reader.(io.ReadCloser); ok {
+				closer.Close()
 			}
 		}
 
-		err = discord.SendMessage(dsbot, config.DiscordChannelId, post.Text, post.FileName, fileReader, post.HasFile)
-		if err != nil {
-			log.Printf("Failed to send message in discord %v", err)
-		}
-
-		if resp != nil && resp.Body != nil {
-			resp.Body.Close()
-		}
 	}
 
 }
