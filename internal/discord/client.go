@@ -2,6 +2,7 @@ package discord
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -22,9 +23,23 @@ func StartBot(token string) (*discordgo.Session, error) {
 	return session, nil
 }
 
-func SendMessage(session *discordgo.Session, channelId string, textMessage string) {
-	_, err := session.ChannelMessageSend(channelId, textMessage)
-	if err != nil {
-		fmt.Printf("Send message in channel: %v, error: %v\n", channelId, err)
+func SendMessage(session *discordgo.Session, channelId string, textMessage string, fileName string, fileReader io.Reader, hasFile bool) error {
+	if hasFile && fileReader != nil {
+		_, err := session.ChannelFileSendWithMessage(channelId, textMessage, fileName, fileReader)
+		if err != nil {
+			fmt.Printf("Send message witch attachment in channel: %v, error: %v\n", channelId, err)
+			return err
+		}
+
+	} else {
+		_, err := session.ChannelMessageSend(channelId, textMessage)
+		if err != nil {
+			fmt.Printf("Send message in channel: %v, error: %v\n", channelId, err)
+			return err
+		}
+
 	}
+
+	return nil
+
 }

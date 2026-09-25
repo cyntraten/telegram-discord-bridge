@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 
 	"github.com/cyntraten/telegram-discord-bridge/internal/config"
 	"github.com/cyntraten/telegram-discord-bridge/internal/discord"
@@ -36,8 +38,29 @@ func main() {
 	postsChan := telegram.StartListening(tgbot)
 
 	// send posts from tg in discord
-	for text := range postsChan {
-		discord.SendMessage(dsbot, config.DiscordChannelId, text)
+	for post := range postsChan {
+
+		var fileReader io.Reader = nil
+		var resp *http.Response
+		var err error
+
+		if post.FileURL != "" && post.HasFile != false {
+			resp, err = http.Get(post.FileURL)
+			if err == nil {
+				fileReader = resp.Body
+			} else {
+				log.Printf("Failed to download image from Telegram post: %v\n", err)
+			}
+		}
+
+		err = discord.SendMessage(dsbot, config.DiscordChannelId, post.Text, post.FileName, fileReader, post.HasFile)
+		if err != nil {
+			log.Printf("Failed to send message in discord %v", err)
+		}
+
+		if resp != nil && resp.Body != nil {
+			resp.Body.Close()
+		}
 	}
 
 }
