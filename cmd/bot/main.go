@@ -53,6 +53,12 @@ func main() {
 				continue
 			}
 
+			if resp.StatusCode != http.StatusOK {
+				log.Printf("Bad status code while downloading file: %v", resp.StatusCode)
+				resp.Body.Close()
+				continue
+			}
+
 			discordFiles = append(discordFiles, discord.MediaFileToSend{Reader: resp.Body, FileName: file.FileName})
 		}
 
